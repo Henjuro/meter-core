@@ -15,6 +15,7 @@ export class PKTStream extends TypedEmitter<PKTStreamEvents> {
    * @returns `false` if packet is malformed
    */
   read(buf: Buffer): false | void {
+    this.emit("raw", buf);
     try {
       if (buf.length < 6) return false;
       const xor = buf.readUInt8(5);

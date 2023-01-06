@@ -1,4 +1,6 @@
 import { createHash } from "crypto";
+import { openSync, write } from "fs";
+import { join } from "path";
 import { TypedEmitter } from "tiny-typed-emitter";
 import type { MeterData } from "./data";
 import { hitflag, stattype, triggersignaltype } from "./packets/generated/enums";
@@ -104,6 +106,8 @@ export class LegacyLogger extends TypedEmitter<LegacyLoggerEvents> {
     characterId: bigint;
   };
 
+  #binlog: number;
+
   constructor(stream: PKTStream, data: MeterData, settings: LegacyLoggerSettings = {}) {
     super();
     this.#data = data;
@@ -123,6 +127,21 @@ export class LegacyLogger extends TypedEmitter<LegacyLoggerEvents> {
       gearLevel: 0,
       characterId: 0n,
     };
+    const padTo2Digits = (num: number) => num.toString().padStart(2, "0");
+    const date = new Date();
+    const filename =
+    "LostArk_" +
+    [
+      date.getFullYear(),
+      padTo2Digits(date.getMonth() + 1),
+      padTo2Digits(date.getDate()),
+      padTo2Digits(date.getHours()),
+      padTo2Digits(date.getMinutes()),
+      padTo2Digits(date.getSeconds()),
+    ].join("-") +
+    ".binlog";
+
+    this.#binlog = openSync(join("C:\\Users\\SpeedProg\\Documents\\Lost Ark Logs", filename), 'w');
 
     stream
       .on("PKTAuthTokenResult", (pkt) => {})
@@ -547,6 +566,14 @@ export class LegacyLogger extends TypedEmitter<LegacyLoggerEvents> {
             this.#wasWipe = true;
             break;
         }
+      })
+      .on("raw", (buf: Buffer) => {
+        const dateTS = BigInt(new Date().valueOf());
+        const outBuffer = Buffer.alloc(8+4+buf.length);
+        outBuffer.writeBigInt64LE(dateTS);
+        outBuffer.writeUInt16LE(buf.length, 8);
+        buf.copy(outBuffer, 8+4);
+        write(this.#binlog, outBuffer, (err, bytesWritten: Number, buf: Buffer) => {});
       });
   }
 

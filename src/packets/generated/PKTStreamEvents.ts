@@ -32,4 +32,5 @@ export interface PKTStreamEvents {
   PKTTriggerFinishNotify: (pkt: PKT<types.PKTTriggerFinishNotify>) => void;
   PKTTriggerStartNotify: (pkt: PKT<types.PKTTriggerStartNotify>) => void;
   "*": (data: Buffer, opcode: number, compression: number, xor: boolean) => void;
+  "raw": (buf: Buffer) => void;
 }

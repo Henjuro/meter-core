@@ -1,4 +1,5 @@
 import cap from "cap";
+import { open, read } from "fs";
 import { isIPv4 } from "net";
 import { TypedEmitter } from "tiny-typed-emitter";
 import { TCPTracker, TCPSession, ListenOptions } from "./tcp_tracker";
@@ -107,5 +108,53 @@ export class PktCaptureAll extends TypedEmitter<PktCaptureAllEvents> {
 
   close() {
     for (const cap of this.caps.values()) cap.close();
+  }
+}
+
+export class PktReader extends TypedEmitter<PktCaptureEvents> {
+  fname: string;
+  fileHandle: number|undefined;
+  buf: Buffer;
+  lastDate: Date|undefined;
+  thisDate: Date|undefined;
+  readLength: number;
+  constructor(filename: string) {
+    super();
+    this.fname = filename;
+    this.fileHandle = undefined;
+    this.buf = Buffer.alloc(70000);
+    this.lastDate = undefined;
+    this.readLength = 0;
+  }
+
+  public startRead() {
+    open(this.fname, 'r', undefined, (err, fd) => {
+      this.fileHandle = fd;
+      read(this.fileHandle, this.buf, 0, 8, null, this.readDate.bind(this));
+    });
+  }
+
+  private readDate(err: any, bytesRead: number, buffer:Buffer) {
+    if (bytesRead != 8) return;
+    this.lastDate = this.thisDate;
+    this.thisDate = new Date(Number(buffer.readBigInt64LE(0)));
+    if (this.fileHandle)
+      read(this.fileHandle, this.buf, 0, 4, null, this.readDataLength.bind(this));
+  }
+
+  private readDataLength(err: any, bytesRead: number, buffer: Buffer) {
+    if (bytesRead != 4) return;
+    this.readLength = buffer.readUInt16LE(0);
+    if (this.fileHandle)
+      read(this.fileHandle, this.buf, 0, this.readLength, null, this.readData.bind(this));
+  }
+
+  private readData(err: any, bytesRead: number, buffer: Buffer) {
+    if (this.readLength != bytesRead) return;
+    var b = Buffer.alloc(bytesRead);
+    buffer.copy(b, 0, 0, bytesRead);
+    this.emit("packet", b);
+    if (this.fileHandle)
+      read(this.fileHandle, this.buf, 0, 8, null, this.readDate.bind(this));
   }
 }
