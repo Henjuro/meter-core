@@ -304,6 +304,7 @@ export class LegacyLogger extends TypedEmitter<LegacyLoggerEvents> {
         for (const effect of parsed.statusEffectDatas) {
           const sourceId: bigint = parsed.PlayerIdOnRefresh != 0n ? parsed.PlayerIdOnRefresh : effect.SourceId;
           const val: number = effect.Value ? effect.Value.readUInt32LE() : 0;
+          const sourceEntity = this.#getSourceEntity(sourceId);
           var se: StatusEffect = {
             instanceId: effect.EffectInstanceId,
             sourceId: sourceId,
@@ -312,8 +313,19 @@ export class LegacyLogger extends TypedEmitter<LegacyLoggerEvents> {
             targetId: parsed.CharacterId,
             type: StatusEffecType.Party,
             value: val,
+            isPlayer: true,
+            sourceIsPlayer: sourceEntity ? sourceEntity.entityType == EntityType.Player : false,
           }
-          StatusTracker.getInstance().RegisterStatusEffect(se);
+
+          var sourceName = sourceEntity.name;
+          var sourceClassName = "";
+          if (se.sourceIsPlayer) {
+            if (sourceEntity.entityType == EntityType.Player) {
+              const sourcePlayerEntity = sourceEntity as Player;
+              sourceClassName = this.#data.getClassName(sourcePlayerEntity.class);
+            }
+          }
+          StatusTracker.getInstance().RegisterStatusEffect(se, this.#data, sourceName, sourceClassName);
         }
       })
       .on("PKTPartyStatusEffectRemoveNotify", (pkt) => {
@@ -503,6 +515,8 @@ export class LegacyLogger extends TypedEmitter<LegacyLoggerEvents> {
         const parsed = pkt.parsed;
         if (!parsed) return;
         const val: number = parsed.statusEffectData.Value ? parsed.statusEffectData.Value.readUInt32LE() : 0;
+        var ent = this.#currentEncounter.entities.get(parsed.ObjectId);
+        const sourceEntity = this.#getSourceEntity(parsed.statusEffectData.SourceId);
         var se: StatusEffect = {
           instanceId: parsed.statusEffectData.EffectInstanceId,
           sourceId: parsed.statusEffectData.SourceId,
@@ -511,8 +525,18 @@ export class LegacyLogger extends TypedEmitter<LegacyLoggerEvents> {
           targetId: parsed.ObjectId,
           type: StatusEffecType.Local,
           value: val,
+          isPlayer: ent ? ent.entityType == EntityType.Player : false,
+          sourceIsPlayer: sourceEntity ? sourceEntity.entityType == EntityType.Player : false,
         };
-        StatusTracker.getInstance().RegisterStatusEffect(se);
+        var sourceName = sourceEntity.name;
+        var sourceClassName = "";
+        if (se.sourceIsPlayer) {
+          if (sourceEntity.entityType == EntityType.Player) {
+            const sourcePlayerEntity = sourceEntity as Player;
+            sourceClassName = this.#data.getClassName(sourcePlayerEntity.class);
+          }
+        }
+        StatusTracker.getInstance().RegisterStatusEffect(se, this.#data, sourceName, sourceClassName);
       })
       .on("PKTStatusEffectRemoveNotify", (pkt) => {
         const parsed = pkt.parsed;

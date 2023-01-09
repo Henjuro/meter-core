@@ -124,4 +124,8 @@ export class MeterData {
   getBattleItemName(id: number) {
     return this.skillEffect.get(id)?.itemname || "";
   }
+
+  getStatusEffectName(id: number) {
+    return this.skillBuff.get(id);
+  }
 }

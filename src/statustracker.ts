@@ -1,4 +1,6 @@
 import { PartyTracker } from "./partytracker";
+import type { MeterData } from "./data";
+import { readFileSync, writeFileSync } from "fs";
 
 export enum StatusEffecType {
     Party = 0,
@@ -12,7 +14,8 @@ export interface StatusEffect {
     started: Date;
     type: StatusEffecType;
     value: number;
-
+    isPlayer: boolean;
+    sourceIsPlayer: boolean;
 }
 type StatusEffectInstanceId = number;
 type TargetId = bigint;
@@ -23,10 +26,18 @@ export class StatusTracker {
 
     PartyStatusEffectRegistry: PlayerStatusEffectRegistry;
     LocalStatusEffectRegistry: PlayerStatusEffectRegistry;
+    foundEffects: Map<number, string[]>;
 
     private constructor() {
         this.PartyStatusEffectRegistry = new Map();
         this.LocalStatusEffectRegistry = new Map();
+        this.foundEffects = new Map();
+        process.on('exit', this.persistFoundStatusEffects.bind(this));
+        process.on('SIGTERM', this.persistFoundStatusEffects.bind(this));
+        process.on('SIGINT', this.persistFoundStatusEffects.bind(this));
+        process.on('SIGUSR1', this.persistFoundStatusEffects.bind(this));
+        process.on('SIGUSR2', this.persistFoundStatusEffects.bind(this));
+        this.loadFoundStatusEffects();
     }
 
     public static getInstance(): StatusTracker {
@@ -64,7 +75,11 @@ export class StatusTracker {
         // TODO: Implement
     }
 
-    public RegisterStatusEffect(se: StatusEffect) {
+    public RegisterStatusEffect(se: StatusEffect, md: MeterData, sourceName: string, sourceClassName: string) {
+        if (!se.isPlayer) {
+            var skillBuff = md.getStatusEffectName(se.statusEffectId);
+            this.foundEffects.set(se.statusEffectId, [skillBuff ? skillBuff.name : "", sourceName, sourceClassName]);
+        }
         var registry = this.getStatusEffectRegistryForPlayer(se.targetId, se.type);
         // look if this effect already in on the target by instance id
         var effect = registry.get(se.instanceId);
@@ -99,5 +114,32 @@ export class StatusTracker {
     public RemoveStatusEffect(targetId: TargetId, statusEffectId: number, et: StatusEffecType) {
         var registry = this.getStatusEffectRegistryForPlayer(targetId, et);
         registry.delete(statusEffectId);
+    }
+
+    public persistFoundStatusEffects() {
+        writeFileSync("foundeffects.json", JSON.stringify(Array.from(this.foundEffects)));
+    }
+
+    public loadFoundStatusEffects() {
+        try {
+            var data:Array<Array<number|Array<string>>> = JSON.parse(readFileSync("foundeffects.json", {encoding: "utf8"}))
+            for (const e of data) {
+                const key = e[0] as number;
+                var valueArray = e[1] as Array<string>;
+                const skillName = valueArray[0]!;
+                const skillCasterName = valueArray[1]!;
+                const mval:string[] = [];
+                mval.push(skillName);
+                mval.push(skillCasterName);
+                if (valueArray.length > 2) {
+                    mval.push(valueArray[2] as string);
+                } else {
+                    mval.push("");
+                }
+                this.foundEffects.set(key, mval);
+            }
+        } catch(err) {
+            console.error(err);
+        }
     }
 }
