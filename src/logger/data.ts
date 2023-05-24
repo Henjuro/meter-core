@@ -1,5 +1,5 @@
 import type { Skill } from "../data";
-export const PARSED_LOG_VERSION = 18;
+export const PARSED_LOG_VERSION = 19;
 
 export enum StatusEffectTarget {
   OTHER,

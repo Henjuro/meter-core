@@ -1,6 +1,7 @@
 import { TypedEmitter } from "tiny-typed-emitter";
 import type { MeterData } from "../data";
 import type { StatusEffectDataLog } from "../packets/log/structures/StatusEffectData";
+import type { StatusEffectData } from "../packets/generated/structures/StatusEffectData";
 import type { NewPC } from "../packets/log/types";
 import { type Entity, EntityType, type Player } from "./entityTracker";
 import type { PartyTracker } from "./partytracker";
@@ -51,6 +52,7 @@ export interface StatusEffect {
   timestamp: bigint;
   name: string;
   pktTime: Date;
+  stackCount: number;
 }
 
 interface StatusTrackerEvents {
@@ -495,6 +497,7 @@ export class StatusTracker extends TypedEmitter<StatusTrackerEvents> {
       name: seName,
       pktTime: pktTime,
       effectType: statusEffectType,
+      stackCount: se.StackCount,
     };
   }
   getStatusEffects(

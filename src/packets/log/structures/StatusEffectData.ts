@@ -10,6 +10,7 @@ export type StatusEffectDataLog = {
   EndTick: bigint;
   Value?: Buffer;
   EffectInstanceId: number;
+  StackCount: number;
 };
 export function read(reader: Read, version: number) {
   const data = {} as StatusEffectDataLog;
@@ -21,6 +22,10 @@ export function read(reader: Read, version: number) {
   data.EndTick = reader.u64();
   if (reader.bool()) data.Value = reader.bytes(16);
   data.EffectInstanceId = reader.u32();
+  data.StackCount = 0;
+  if (version >= 19) {
+    data.StackCount = reader.u8();
+  }
   return data;
 }
 export function write(writer: Write, data: StatusEffectDataLog | StatusEffectData) {
@@ -34,4 +39,5 @@ export function write(writer: Write, data: StatusEffectDataLog | StatusEffectDat
     writer.bytes(data.Value, { length: 16 });
   }
   writer.u32(data.EffectInstanceId);
+  writer.u8(data.StackCount);
 }
