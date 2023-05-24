@@ -168,7 +168,7 @@ export interface StatusEffectCast {
   duration: number;
   sourceName: string;
   targetName: string;
-
+  instanceId: number;
 }
 
 export type GameTrackerOptions = {

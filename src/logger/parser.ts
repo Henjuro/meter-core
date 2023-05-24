@@ -598,7 +598,8 @@ export class Parser extends TypedEmitter<ParserEvent> {
           source,
           se.statusEffectId,
           se.occurTime.getTime(),
-          se.occurTime.getTime() + duration
+          se.occurTime.getTime() + duration,
+          se.instanceId
         );
       })
       .on("shieldApplied", (se: StatusEffect) => {

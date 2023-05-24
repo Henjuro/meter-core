@@ -1328,7 +1328,7 @@ export class GameTracker extends TypedEmitter<ParserEvent> {
       this.#game.damageStatistics.totalShieldDone += amount;
     }
   }
-  onStatusEffectEnded(targetEntity: Entity, sourceEntity: Entity, statusEffectId: number, from: number, to: number) {
+  onStatusEffectEnded(targetEntity: Entity, sourceEntity: Entity, statusEffectId: number, from: number, to: number, instanceId: number) {
     const now = new Date();
     const targetEntityState = this.updateEntity(targetEntity, {}, now);
     const sourceEntityState = this.updateEntity(sourceEntity, {}, now);
@@ -1338,6 +1338,7 @@ export class GameTracker extends TypedEmitter<ParserEvent> {
       started: from,
       sourceName: sourceEntityState.name,
       targetName: targetEntityState.name,
+      instanceId: instanceId,
     };
     targetEntityState.statusEffectsGotten.push(cast);
     sourceEntityState.statusEffectsDone.push(cast);
