@@ -13,7 +13,7 @@ import {
   stattype,
 } from "../packets/generated/enums";
 import type { InitEnv } from "../packets/log/types";
-import type { Breakdown, EntitySkills, EntityState, GameState, GameTrackerOptions } from "./data";
+import type { Breakdown, EntitySkills, EntityState, GameState, GameTrackerOptions, StatusEffectCast } from "./data";
 import { StatusEffectTarget } from "./data";
 import type { Entity, Esther, Npc, Player, Projectile } from "./entityTracker";
 import { EntityTracker, EntityType } from "./entityTracker";
@@ -123,7 +123,12 @@ export class GameTracker extends TypedEmitter<ParserEvent> {
       this.emit("message", "new-zone");
     }
   }
-  splitEncounter(time: Date) {
+  splitEncounter(time: Date | undefined = undefined) {
+    if (time === undefined) {
+      // if we don't have a time use the last combat packet
+      time = new Date(this.#game.lastCombatPacket);
+    }
+    this.#statusTracker.OnEncounterSplit(time);
     if (
       this.#game.fightStartedOn !== 0 && // no combat packets
       (this.#game.damageStatistics.totalDamageDealt !== 0 || this.#game.damageStatistics.totalDamageTaken !== 0) // no player damage dealt OR taken
@@ -1323,6 +1328,20 @@ export class GameTracker extends TypedEmitter<ParserEvent> {
       this.#game.damageStatistics.totalShieldDone += amount;
     }
   }
+  onStatusEffectEnded(targetEntity: Entity, sourceEntity: Entity, statusEffectId: number, from: number, to: number) {
+    const now = new Date();
+    const targetEntityState = this.updateEntity(targetEntity, {}, now);
+    const sourceEntityState = this.updateEntity(sourceEntity, {}, now);
+    const cast: StatusEffectCast = {
+      id: statusEffectId,
+      duration: to - from,
+      started: from,
+      sourceName: sourceEntityState.name,
+      targetName: targetEntityState.name,
+    };
+    targetEntityState.statusEffectsGotten.push(cast);
+    sourceEntityState.statusEffectsDone.push(cast);
+  }
   getSkillNameIcon(skillId: number, skillEffectId: number): { name: string; icon?: string } {
     if (skillId === 0 && skillEffectId === 0) {
       //TODO: check if we get only hit hitflag.dot or hitflag.dot_critical
@@ -1503,6 +1522,8 @@ export class GameTracker extends TypedEmitter<ParserEvent> {
       damagePreventedByShield: 0,
       shieldReceived: 0,
       statApiValid: false,
+      statusEffectsDone: [],
+      statusEffectsGotten: [],
     };
     return newEntity;
   }

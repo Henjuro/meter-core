@@ -57,6 +57,7 @@ export interface StatusEffect {
 interface StatusTrackerEvents {
   shieldChanged: (se: StatusEffect, oldValue: number, newValue: number) => void;
   shieldApplied: (se: StatusEffect) => void;
+  statusEffectEnded: (se: StatusEffect, duration: number) => void;
 }
 
 type StatusEffectInstanceId = number;
@@ -133,13 +134,18 @@ export class StatusTracker extends TypedEmitter<StatusTrackerEvents> {
     this.PartyStatusEffectRegistry.delete(objectId);
   }
 
-  public RegisterStatusEffect(se: StatusEffect) {
+  public RegisterStatusEffect(se: StatusEffect, pktTime: Date) {
     const registry = this.getStatusEffectRegistryForPlayer(se.targetId, se.type);
     const oldEffect = registry.get(se.instanceId);
     if (oldEffect) {
       if (this.#isLive && oldEffect.expirationTimer) {
         clearTimeout(oldEffect.expirationTimer);
         oldEffect.expirationTimer = undefined;
+      }
+      if (oldEffect.statusEffectId === se.statusEffectId && oldEffect.sourceId == se.sourceId) {
+        se.occurTime = oldEffect.occurTime;
+      } else {
+        this.emit("statusEffectEnded", oldEffect, pktTime.getTime() - oldEffect.occurTime.getTime());
       }
     } else if (se.effectType === StatusEffectType.Shield) {
       this.emit("shieldApplied", se);
@@ -217,6 +223,7 @@ export class StatusTracker extends TypedEmitter<StatusTrackerEvents> {
         statusEffect.expirationTimer = undefined;
       }
       registry.delete(statusEffectId);
+      this.emit("statusEffectEnded", statusEffect, pktTime.getTime() - statusEffect.occurTime.getTime());
       if (reason === statuseffectexpiredreasontype.beattacked) {
         // is live OR is still valid
         if (this.#isLive || this.IsReplayStatusEffectValidElseRemove(statusEffect, pktTime))
@@ -225,6 +232,7 @@ export class StatusTracker extends TypedEmitter<StatusTrackerEvents> {
     }
     return statusEffect;
   }
+
   public GetStatusEffects(targetId: TargetId, et: StatusEffectTargetType, pktTime: Date): Array<StatusEffect> {
     if (!this.hasStatusEffectRegistryForPlayer(targetId, et)) return [];
     const registry = this.getStatusEffectRegistryForPlayer(targetId, et);
@@ -352,6 +360,24 @@ export class StatusTracker extends TypedEmitter<StatusTrackerEvents> {
     );
   }
 
+  /**
+   * Send statuseffect ended event for all currently active status effects.
+   * Does NOT remove them from the tracker.
+   * @param pktTime Current game time when the split happens
+   */
+  public OnEncounterSplit(pktTime: Date) {
+    for (const [, reg] of this.LocalStatusEffectRegistry) {
+      for (const [, se] of reg) {
+        this.emit("statusEffectEnded", se, pktTime.getTime() - se.occurTime.getTime());
+      }
+    }
+    for (const [, reg] of this.PartyStatusEffectRegistry) {
+      for (const [, se] of reg) {
+        this.emit("statusEffectEnded", se, pktTime.getTime() - se.occurTime.getTime());
+      }
+    }
+  }
+
   private SetupStatusEffectTimeout(se: StatusEffect) {
     // set up the timeout to expire effect if it was not canceled by a pkt by then
     // only setup expiration timer if we have a duration in the pkt, for no duration it is -1
@@ -405,7 +431,8 @@ export class StatusTracker extends TypedEmitter<StatusTrackerEvents> {
           se.sourceId,
           shouldUsePartyStatusEffects ? StatusEffectTargetType.Party : StatusEffectTargetType.Local,
           pktTime
-        )
+        ),
+        pktTime
       );
     }
   }

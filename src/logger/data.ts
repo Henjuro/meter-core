@@ -118,6 +118,8 @@ export interface EntityState {
   shieldReceivedBy: Map<number, number>;
   statApiValid: boolean;
   //TODO: include stats & tripods
+  statusEffectsGotten: Array<StatusEffectCast>;
+  statusEffectsDone: Array<StatusEffectCast>;
 }
 
 export interface Breakdown {
@@ -158,6 +160,15 @@ export interface Hits {
   hitsBuffedBySupport: number;
   hitsBuffedBy: Map<number, number>;
   hitsDebuffedBy: Map<number, number>;
+}
+
+export interface StatusEffectCast {
+  id: number;
+  started: number;
+  duration: number;
+  sourceName: string;
+  targetName: string;
+
 }
 
 export type GameTrackerOptions = {

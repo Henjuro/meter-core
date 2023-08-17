@@ -293,7 +293,8 @@ export class Parser extends TypedEmitter<ParserEvent> {
               sourceEnt.entityId,
               StatusEffectTargetType.Party,
               pkt.time
-            )
+            ),
+            pkt.time
           );
         }
       })
@@ -483,7 +484,8 @@ export class Parser extends TypedEmitter<ParserEvent> {
             sourceEnt.entityId,
             StatusEffectTargetType.Local,
             pkt.time
-          )
+          ),
+          pkt.time
         );
       })
       .on("StatusEffectDurationNotify", (pkt) => {
@@ -584,6 +586,21 @@ export class Parser extends TypedEmitter<ParserEvent> {
       .on("ZoneStatusEffectRemoveNotify", (pkt) => {});
 
     this.#statusTracker
+      .on("statusEffectEnded", (se: StatusEffect, duration: number) => {
+        let targetEntityId =
+          se.type === StatusEffectTargetType.Party ? this.#pcIdMapper.getEntityId(se.targetId) : se.targetId;
+        if (!targetEntityId) return;
+        const target = this.#entityTracker.entities.get(targetEntityId);
+        const source = this.#entityTracker.entities.get(se.sourceId);
+        if (!target || !source) return;
+        this.#gameTracker.onStatusEffectEnded(
+          target,
+          source,
+          se.statusEffectId,
+          se.occurTime.getTime(),
+          se.occurTime.getTime() + duration
+        );
+      })
       .on("shieldApplied", (se: StatusEffect) => {
         let targetObjectId: bigint | undefined = se.targetId;
         if (se.type === StatusEffectTargetType.Party) {
@@ -642,7 +659,7 @@ export class Parser extends TypedEmitter<ParserEvent> {
 
   get encounters() {
     //TODO: parse only ?
-    this.#gameTracker.splitEncounter(new Date()); //Date doesn't matter here
+    this.#gameTracker.splitEncounter();
     return this.#gameTracker.encounters;
   }
 }

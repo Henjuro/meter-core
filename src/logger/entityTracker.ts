@@ -137,7 +137,8 @@ export class EntityTracker {
           sourceEntity.entityId,
           StatusEffectTargetType.Local,
           pkt.time
-        )
+        ),
+        pkt.time
       );
     }
     return player;
@@ -183,7 +184,8 @@ export class EntityTracker {
           sourceEntity.entityId,
           StatusEffectTargetType.Local,
           pkt.time
-        )
+        ),
+        pkt.time
       );
     }
     return npc;
@@ -220,7 +222,8 @@ export class EntityTracker {
           sourceEntity.entityId,
           StatusEffectTargetType.Local,
           pkt.time
-        )
+        ),
+        pkt.time
       );
     }
     this.entities.set(summon.entityId, summon);
