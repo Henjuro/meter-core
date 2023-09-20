@@ -1342,6 +1342,10 @@ export class GameTracker extends TypedEmitter<ParserEvent> {
     };
     targetEntityState.statusEffectsGotten.push(cast);
     sourceEntityState.statusEffectsDone.push(cast);
+    if (!this.#game.damageStatistics.buffs.has(statusEffectId)) {
+      const statusEffect = this.#data.getStatusEffectHeaderData(statusEffectId);
+      if (statusEffect) this.#game.damageStatistics.buffs.set(statusEffectId, statusEffect);
+    }
   }
   getSkillNameIcon(skillId: number, skillEffectId: number): { name: string; icon?: string } {
     if (skillId === 0 && skillEffectId === 0) {
