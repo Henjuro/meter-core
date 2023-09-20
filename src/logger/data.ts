@@ -120,6 +120,7 @@ export interface EntityState {
   //TODO: include stats & tripods
   statusEffectsGotten: Array<StatusEffectCast>;
   statusEffectsDone: Array<StatusEffectCast>;
+  casts: SkillCast[];
 }
 
 export interface Breakdown {
@@ -169,6 +170,11 @@ export interface StatusEffectCast {
   sourceName: string;
   targetName: string;
   instanceId: number;
+}
+
+export interface SkillCast {
+  id: number;
+  casttime: number;
 }
 
 export type GameTrackerOptions = {

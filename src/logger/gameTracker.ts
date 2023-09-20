@@ -1237,6 +1237,10 @@ export class GameTracker extends TypedEmitter<ParserEvent> {
 
     if (entity) {
       entity.hits.casts += 1;
+      entity.casts.push({
+        casttime: time.getTime(),
+        id: skillId
+      });
       let skill = entity.skills.get(skillId);
       if (!skill) {
         skill = {
@@ -1529,6 +1533,7 @@ export class GameTracker extends TypedEmitter<ParserEvent> {
       statApiValid: false,
       statusEffectsDone: [],
       statusEffectsGotten: [],
+      casts: [],
     };
     return newEntity;
   }
